@@ -12,12 +12,11 @@ export const typeDefs = `#graphql
   type Mutation {
     addTask(input: AddTaskInput) : Task
     deleteTask(id: Int) : Task
+    toggleTaskDone(id: Int, done:Boolean) : Task
   }
 
   input AddTaskInput {
     title: String
   }
 
-`
-
-
+`;
