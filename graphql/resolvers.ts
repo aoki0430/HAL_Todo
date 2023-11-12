@@ -26,5 +26,14 @@ export const resolvers = {
         }
       )
     },
+
+    toggleTaskDone: (parent, { id }, context, info) => {
+      return prisma.task.update(
+        {
+          data: { done },
+          where: { id },
+        }
+      )
+    },
   },
 }
