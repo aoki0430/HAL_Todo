@@ -1,6 +1,6 @@
 import type { NextPage } from "next";
-import { useState } from "react";
-import { Button, Form, Input, Menu, MenuProps, Checkbox } from "antd";
+import { FormEvent, useState } from "react";
+import { Button, Form, Input, Menu, MenuProps, Checkbox, Divider } from "antd";
 import { AppstoreOutlined, MailOutlined } from "@ant-design/icons";
 import type { CheckboxChangeEvent } from "antd/es/checkbox";
 import { gql, useMutation, useQuery } from "@apollo/client";
@@ -26,10 +26,22 @@ const ToggleTaskMutation = gql`
   }
 `;
 
+const AddTaskMutation = gql`
+  mutation ($input: AddTaskInput!) {
+    addTask(input: $input) {
+      id
+      title
+      done
+    }
+  }
+`;
+
 const Home: NextPage = () => {
-  const { data, loading, error } = useQuery(AllTasksQuery);
+  const { data, loading, error, refetch } = useQuery(AllTasksQuery);
   const [toggleTaskDone, { loading: toggling, error: toggleError }] =
     useMutation(ToggleTaskMutation);
+  const [addTaskDone, { loading: adding, error: addingError }] =
+    useMutation(AddTaskMutation);
   const [form] = Form.useForm();
 
   const handleToggleTaskDone = async (
@@ -46,6 +58,23 @@ const Home: NextPage = () => {
       });
     } catch (error) {
       console.error("Error toggling task", error);
+    }
+  };
+
+  const onSubmitAddTask = async (title: string) => {
+    try {
+      console.log(title);
+      await addTaskDone({
+        variables: {
+          input: {
+            title: title,
+          },
+        },
+      });
+      form.resetFields();
+      refetch();
+    } catch (error) {
+      console.error("Error adding task", error);
     }
   };
 
@@ -76,58 +105,63 @@ const Home: NextPage = () => {
 
   return (
     <>
-      <div className="ml-8 mt-8">
+      <div className="mx-16 mt-8 flex flex-col">
         <Menu
           onClick={onClickTab}
           selectedKeys={[current]}
           mode="horizontal"
           items={items}
         />
-        <div className="mt-8">
-          <div className="flex">
-            <Form
-              labelCol={{ span: 48 }}
-              wrapperCol={{ span: 48 }}
-              style={{ maxWidth: 600 }}
-            >
-              <Form.Item>
-                <Input placeholder="write todo" />
-              </Form.Item>
-            </Form>
-
-            <Button htmlType="submit">Add</Button>
-          </div>
-          <ul className="list-none">
-            {undoneTasks.map((task: task) => (
-              <li key={task.id}>
-                <Checkbox
-                  onChange={(event) => handleToggleTaskDone(event, task.id)}
-                  key={`task-${task.id}`}
-                  checked={task.done}
-                >
-                  {task.title}
-                </Checkbox>
-              </li>
-            ))}
-            {undoneTasks.length > 0 && doneTasks.length > 0 && (
-              <li>
-                <hr className="my-4 border-t border-gray-300" />
-              </li>
-            )}
-            {doneTasks.map((task) => (
-              <li key={task.id} className="mb-2">
-                <Checkbox
-                  onChange={(event) => handleToggleTaskDone(event, task.id)}
-                  key={`task-${task.id}`}
-                  checked={task.done}
-                  className="line-through"
-                >
-                  {task.title}
-                </Checkbox>
-              </li>
-            ))}
-          </ul>
-        </div>
+        <Form
+          form={form}
+          className="my-4 flex w-2/3"
+          onSubmitCapture={(event: FormEvent<HTMLFormElement>) => {
+            event.preventDefault();
+            const title = (event.currentTarget[0] as HTMLInputElement).value;
+            onSubmitAddTask(title);
+            form.resetFields();
+          }}
+        >
+          <Form.Item name="taskTitle" className="flex-grow">
+            <Input placeholder="write todo" />
+          </Form.Item>
+          <Button htmlType="submit" className="ml-2">
+            Add
+          </Button>
+        </Form>
+        <ul className="list-none">
+          <Divider orientation="left" plain orientationMargin="0">
+            Todo
+          </Divider>
+          {undoneTasks.map((task: task) => (
+            <li key={task.id}>
+              <Checkbox
+                onChange={(event) => handleToggleTaskDone(event, task.id)}
+                key={`task-${task.id}`}
+                checked={task.done}
+              >
+                {task.title}
+              </Checkbox>
+            </li>
+          ))}
+          {/* {undoneTasks.length > 0 && doneTasks.length > 0 && ( */}
+          <Divider orientation="left" plain orientationMargin="0">
+            Completed
+          </Divider>
+          {/* )} */}
+          {doneTasks.map((task) => (
+            <li key={task.id} className="mb-2">
+              <Checkbox
+                onChange={(event) => handleToggleTaskDone(event, task.id)}
+                key={`task-${task.id}`}
+                checked={task.done}
+                className="line-through"
+              >
+                {task.title}
+              </Checkbox>
+            </li>
+          ))}
+        </ul>
       </div>
     </>
   );

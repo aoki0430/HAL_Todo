@@ -8,8 +8,12 @@ export const resolvers = {
   },
 
   Mutation: {
-    addTask: (parent: undefined, args: { title: string }) => {
-      const { title } = args;
+    addTask: (parent: undefined, args: { input: { title: string } }) => {
+      if (!args.input || !args.input.title) {
+        throw new Error("Title is required");
+      }
+
+      const { title } = args.input;
 
       return prisma.task.create({
         data: {
